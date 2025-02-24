@@ -1,47 +1,39 @@
 pipeline {
-    agent any
+    agent { label 'ubuntu' }
 
     stages {
-        stage('Checkout repo') {
+        stage('Checkout Repo') {
             steps {
                 checkout scm
             }
         }
-        stage('Run batch script 1') {
-            steps {
-                bat 'echo Running batch script 1'
-            }
-        }
-        stage('Run batch script 2') {
+        stage('Run Script 1') {
             steps {
                 script {
-                    try {
-                        bat 'echo Running batch script 2'
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        error 'Batch script 2 failed'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        sh 'echo Running Script 1 > script1.log'
                     }
                 }
             }
         }
-        stage('Run batch script 3') {
-            steps {
-                bat 'echo Running batch script 3 > log.txt'
+        stage('Run Script 2') {
+            when {
+                expression { currentBuild.result == 'FAILURE' }
             }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'log.txt', allowEmptyArchive: true
-                }
+            steps {
+                sh 'echo Running Script 2 > script2.log'
+            }
+        }
+        stage('Run Script 3') {
+            steps {
+                sh 'echo Running Script 3 > script3.log'
             }
         }
     }
+
     post {
-        failure {
-            stage('Run batch script 2 on failure') {
-                steps {
-                    bat 'echo Running batch script 2 on failure'
-                }
-            }
+        always {
+            archiveArtifacts artifacts: 'script3.log', allowEmptyArchive: true
         }
     }
 }
