@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout repo') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Run batch script 1') {
+            steps {
+                bat 'echo Running batch script 1'
+            }
+        }
+        stage('Run batch script 2') {
+            steps {
+                script {
+                    try {
+                        bat 'echo Running batch script 2'
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        error 'Batch script 2 failed'
+                    }
+                }
+            }
+        }
+        stage('Run batch script 3') {
+            steps {
+                bat 'echo Running batch script 3 > log.txt'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'log.txt', allowEmptyArchive: true
+                }
+            }
+        }
+    }
+    post {
+        failure {
+            stage('Run batch script 2 on failure') {
+                steps {
+                    bat 'echo Running batch script 2 on failure'
+                }
+            }
+        }
+    }
+}
