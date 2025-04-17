@@ -2,38 +2,29 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout Repo') {
+        stage('Checkout') {
             steps {
+                // Clone Git repository
                 checkout scm
             }
         }
-        stage('Run Script 1') {
+
+        stage('Set Build Name') {
             steps {
                 script {
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        sh 'echo Running Script 1 > script1.log'
-                    }
+                    // Lấy commit ID hiện tại (rút gọn 7 ký tự)
+                    def commitId = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
+
+                    // Đặt lại tên build
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} - ${commitId}"
                 }
             }
         }
-        stage('Run Script 2') {
-            when {
-                expression { currentBuild.result == 'FAILURE' }
-            }
-            steps {
-                sh 'echo Running Script 2 > script2.log'
-            }
-        }
-        stage('Run Script 3') {
-            steps {
-                sh 'echo Running Script 3 > script3.log'
-            }
-        }
-    }
 
-    post {
-        always {
-            archiveArtifacts artifacts: 'script3.log', allowEmptyArchive: true
+        stage('Test') {
+            steps {
+                echo "Chạy unit test hoặc bất kỳ job test nào ở đây"
+            }
         }
     }
 }
