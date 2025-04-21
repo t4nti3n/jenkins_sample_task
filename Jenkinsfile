@@ -1,29 +1,25 @@
 pipeline {
-    agent any
-
+    agent { label 'linux' }
     stages {
-        stage('Checkout') {
-            steps {
-                // Clone Git repository
-                checkout scm
-            }
-        }
-
-        stage('Set Build Name') {
+        stage('Set Custom Build Name') {
             steps {
                 script {
-                    // Lấy commit ID hiện tại (rút gọn 7 ký tự)
-                    def commitId = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
-
-                    // Đặt lại tên build
-                    currentBuild.displayName = "#${env.BUILD_NUMBER} - ${commitId}"
+                    // Lấy PR number, nếu không có thì mặc định là "noPR"
+                    def prNum = env.CHANGE_ID ?: "noPR"
+                    
+                    // Lấy tên nhánh đích của PR (ví dụ: main, master)
+                    def targetBranch = env.CHANGE_TARGET ?: "main" // Fallback là "main" nếu không có CHANGE_TARGET
+                    
+                    // Lấy Commit ID của nhánh đích
+                    def commitID = sh(script: "git rev-parse origin/${targetBranch}", returnStdout: true).trim()?.take(7) ?: "noCommit"
+                    
+                    // Đặt tên build
+                    currentBuild.displayName = "${env.BUILD_NUMBER}-PR-${prNum}-${commitID}"
+                    
+                    // In thông tin để debug
+                    echo "PR Number: ${prNum}, Target Branch: ${targetBranch}, Commit: ${commitID}"
+                    echo "Build Display Name: ${currentBuild.displayName}"
                 }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo "Chạy unit test hoặc bất kỳ job test nào ở đây"
             }
         }
     }
